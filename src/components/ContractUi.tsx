@@ -32,6 +32,7 @@ import {
   EntityIdHelper,
   Client,
 } from "@hashgraph/sdk";
+import NavBar from "./Navbar";
 
 interface Message {
   id: number;
@@ -98,6 +99,9 @@ const ContractUi: React.FC = () => {
   }, [messages]);
 
   return (
+    <><header>
+      <NavBar />
+    </header>
     <div
       style={{
         display: "flex",
@@ -108,124 +112,120 @@ const ContractUi: React.FC = () => {
         padding: 36,
       }}
     >
-      <Box
-        display="flex"
-        flexDirection="column"
-        sx={{
-          maxHeight: "calc(100vh - 85px)",
-          height: "fit-content",
-          boxSizing: "border-box",
-        }}
-        p={2}
-        style={{ justifyContent: "center" }}
-      >
-        {/* Chat history window */}
-        <Paper
-          elevation={3}
-          style={{
-            height: "fit-content",
-            padding: "16px",
-            overflowY: "auto",
-            justifyContent: "center",
-          }}
-        >
-          <List>
-            {messages.map((message) => (
-              <ListItem
-                key={message.id}
-                alignItems="flex-start"
-                style={{
-                  justifyContent:
-                    message.sender === "user" ? "flex-end" : "flex-start",
-                }}
-              >
-                {message.sender === "assistant" && (
-                  <ListItemAvatar
-                    style={{ display: "flex", alignSelf: "start" }}
-                  >
-                    <Avatar alt="Asystent" src="/assistant-avatar.png" />
-                  </ListItemAvatar>
-                )}
-                <Paper
-                  style={{
-                    padding: "8px",
-                    backgroundColor:
-                      message.sender === "user" ? "#1976d2" : "#e0e0e0",
-                    color: message.sender === "user" ? "#fff" : "#000",
-                    borderRadius: "8px",
-                    maxWidth: "70%",
-                  }}
-                >
-                  <Typography
-                    variant="body1"
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {message.text}
-                  </Typography>
-                </Paper>
-
-                {message.sender === "user" && (
-                  <ListItemAvatar
-                    style={{
-                      paddingLeft: 15,
-                      display: "flex",
-                      alignSelf: "end",
-                    }}
-                  >
-                    <Avatar
-                      style={{ display: "flex", alignSelf: "end" }}
-                      alt="Ty"
-                      src="/user-avatar.png"
-                    />
-                  </ListItemAvatar>
-                )}
-              </ListItem>
-            ))}
-          </List>
-          <div ref={messagesEndRef} />
-        </Paper>
-        {/* Input area and send button */}
         <Box
-          mt={2}
           display="flex"
-          alignContent="center"
-          justifyContent="center"
+          flexDirection="column"
+          sx={{
+            maxHeight: "calc(100vh - 85px)",
+            height: "fit-content",
+            boxSizing: "border-box",
+          }}
+          p={2}
+          style={{ justifyContent: "center" }}
         >
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Wpisz wiadomość..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            multiline
-            rows={isExpanded ? 4 : 1}
-            onFocus={() => setIsExpanded(true)}
-            onBlur={() => {
-              if (input.trim() === "") setIsExpanded(false);
-            }}
-            sx={{
-              transition: "all 0.3s ease",
-            }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSendMessage}
+          {/* Chat history window */}
+          <Paper
+            elevation={3}
             style={{
-              marginLeft: "8px",
-              maxHeight: "40px",
-              display: "flex",
-              alignSelf: "center",
+              height: "fit-content",
+              padding: "16px",
+              overflowY: "auto",
+              justifyContent: "center",
             }}
           >
-            Wyślij
-          </Button>
+            <List>
+              {messages.map((message) => (
+                <ListItem
+                  key={message.id}
+                  alignItems="flex-start"
+                  style={{
+                    justifyContent: message.sender === "user" ? "flex-end" : "flex-start",
+                  }}
+                >
+                  {message.sender === "assistant" && (
+                    <ListItemAvatar
+                      style={{ display: "flex", alignSelf: "start" }}
+                    >
+                      <Avatar alt="Asystent" src="/assistant-avatar.png" />
+                    </ListItemAvatar>
+                  )}
+                  <Paper
+                    style={{
+                      padding: "8px",
+                      backgroundColor: message.sender === "user" ? "#1976d2" : "#e0e0e0",
+                      color: message.sender === "user" ? "#fff" : "#000",
+                      borderRadius: "8px",
+                      maxWidth: "70%",
+                    }}
+                  >
+                    <Typography
+                      variant="body1"
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {message.text}
+                    </Typography>
+                  </Paper>
+
+                  {message.sender === "user" && (
+                    <ListItemAvatar
+                      style={{
+                        paddingLeft: 15,
+                        display: "flex",
+                        alignSelf: "end",
+                      }}
+                    >
+                      <Avatar
+                        style={{ display: "flex", alignSelf: "end" }}
+                        alt="Ty"
+                        src="/user-avatar.png" />
+                    </ListItemAvatar>
+                  )}
+                </ListItem>
+              ))}
+            </List>
+            <div ref={messagesEndRef} />
+          </Paper>
+          {/* Input area and send button */}
+          <Box
+            mt={2}
+            display="flex"
+            alignContent="center"
+            justifyContent="center"
+          >
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Wpisz wiadomość..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              multiline
+              rows={isExpanded ? 4 : 1}
+              onFocus={() => setIsExpanded(true)}
+              onBlur={() => {
+                if (input.trim() === "") setIsExpanded(false);
+              } }
+              sx={{
+                transition: "all 0.3s ease",
+              }} />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSendMessage}
+              style={{
+                marginLeft: "8px",
+                maxHeight: "40px",
+                display: "flex",
+                alignSelf: "center",
+              }}
+            >
+              Wyślij
+            </Button>
+          </Box>
         </Box>
-      </Box>
-    </div>
+      </div></>
   );
 };
 
