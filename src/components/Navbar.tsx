@@ -1,11 +1,21 @@
 import { AppBar, Button, Toolbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
-import { WalletSelectionDialog } from "./WalletSelectionDialog";
+import { useNavigate } from "react-router-dom"; //TODO PRZY ROZŁCZENIU ZMIENIĆ NA /login
+
+
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
   const { accountId, walletInterface } = useWalletInterface();
+
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (accountId===null) {
+      setOpen(false);
+      navigate("/");
+    }
+  }, [accountId]);
 
   const handleConnect = async () => {
     if (accountId) {
@@ -34,14 +44,9 @@ export default function NavBar() {
           }}
           onClick={handleConnect}
         >
-          {accountId ? `Connected: ${accountId}` : "Connect Wallet"}
+          {accountId ? `Disconnect` : "Connect Wallet"}
         </Button>
       </Toolbar>
-      <WalletSelectionDialog
-        open={open}
-        setOpen={setOpen}
-        onClose={() => setOpen(false)}
-      />
     </AppBar>
   );
 }
