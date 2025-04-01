@@ -5,7 +5,12 @@ export type NetworkConfig = {
   jsonRpcUrl: string;
   mirrorNodeUrl: string;
   chainId: ChainId;
+  contractAddress: string;
+  backendKey: string;
   contractId: string;
+  requestTopic: string;
+  backendTopic: string;
+  resumeTopic: string;
 };
 
 // purpose of this file is to define the type of the config object
@@ -18,6 +23,9 @@ export type NetworkConfigs = {
     contractId: string;
     contractAddress: string;
     backendKey: string;
+    requestTopic: string;
+    backendTopic: string;
+    resumeTopic: string;
   };
 };
 

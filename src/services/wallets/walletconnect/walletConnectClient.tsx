@@ -2,7 +2,9 @@ import { WalletConnectContext } from "../../../contexts/WalletConnectContext";
 import { useCallback, useContext, useEffect } from "react";
 import { WalletInterface } from "../walletInterface";
 import { MirrorNodeClient } from "../mirrorNodeClient";
+import { saveSession } from "./../../sessionStorage";
 import { ethers, ContractInterface } from "ethers";
+import { keccak256, toUtf8Bytes } from "ethers";
 import {
   AccountId,
   ContractExecuteTransaction,
@@ -14,7 +16,10 @@ import {
   TransactionId,
   TransferTransaction,
   TransactionReceiptQuery,
+  TopicMessageSubmitTransaction,
+  TopicId,
   Client,
+  TopicMessageQuery,
   Hbar,
   FileId,
   ContractCallQuery,
@@ -34,7 +39,7 @@ import {
 } from "@hashgraph/sdk";
 import { ContractFunctionParameterBuilder } from "../contractFunctionParameterBuilder";
 import { appConfig } from "../../../config";
-import { SignClientTypes } from "@walletconnect/types";
+/*import { SignClientTypes } from "@walletconnect/types";
 import {
   DAppConnector,
   HederaJsonRpcMethod,
@@ -42,399 +47,318 @@ import {
   HederaChainId,
   SignAndExecuteTransactionParams,
   transactionToBase64String,
-} from "@hashgraph/hedera-wallet-connect";
+} from "@hashgraph/hedera-wallet-connect";*/
+import {
+  HashConnect,
+  HashConnectConnectionState,
+  SessionData,
+} from "hashconnect";
 import EventEmitter from "events";
 import { networkConfig } from "../../../config/networks";
-import { sign } from "crypto";
 
 // Created refreshEvent because `dappConnector.walletConnectClient.on(eventName, syncWithWalletConnectContext)` would not call syncWithWalletConnectContext
-// Reference usage from walletconnect implementation https://github.com/hashgraph/hedera-wallet-connect/blob/main/src/lib/dapp/index.ts#L120C1-L124C9
+interface MessageFormat {
+  eventType: string;
+  accountId?: string;
+  userPublicKey?: string;
+  encryptedSessionData?: string;
+  text?: string;
+}
 const refreshEvent = new EventEmitter();
 
 // Create a new project in walletconnect cloud to generate a project id
-const walletConnectProjectId = "377d75bb6f86a2ffd427d032ff6ea7d3";
+
 const currentNetworkConfig = appConfig.networks.testnet;
 const hederaNetwork = currentNetworkConfig.network;
-const hederaClient = Client.forName(hederaNetwork);
+const hederaClient = Client.forTestnet();
 
-// Adapted from walletconnect dapp example:
 // https://github.com/hashgraph/hedera-wallet-connect/blob/main/src/examples/typescript/dapp/main.ts#L87C1-L101C4
-const metadata: SignClientTypes.Metadata = {
-  name: "Hedera CRA Template",
-  description: "Hedera CRA Template",
-  url: window.location.origin,
-  icons: [window.location.origin + "/logo192.png"],
-};
-let sessionPrivateKey: PrivateKey;
-let sessionPublicKey: PublicKey;
-let sessionAccountId: AccountId;
+
 const sessionClient = Client.forTestnet();
-if (sessionStorage.getItem("sessionAccountId")) {
-  console.log(sessionStorage.getItem("sessionPrivateKey"));
-  console.log(sessionStorage.getItem("sessionPublicKey"));
-  console.log(sessionStorage.getItem("sessionAccountId"));
-  sessionPrivateKey = PrivateKey.fromStringDer(
-    sessionStorage.getItem("sessionPrivateKey") || ""
-  );
-  sessionPublicKey = PublicKey.fromString(
-    sessionStorage.getItem("sessionPublicKey") || ""
-  );
-  sessionClient.setOperator(
-    AccountId.fromString(sessionStorage.getItem("sessionAccountId") || ""),
-    sessionPrivateKey
-  );
-}
 
-class WalletConnectWallet implements WalletInterface {
-  private getSigner() {
-    if (dappConnector.signers.length === 0) {
-      throw new Error("No signers found!");
-    }
-    return dappConnector.signers[0];
-  }
+class HashConnectWallet implements WalletInterface {
   private getAccountId() {
-    // Need to convert from walletconnect's AccountId to hashgraph/sdk's AccountId because walletconnect's AccountId and hashgraph/sdk's AccountId are not the same!
-    return AccountId.fromString(this.getSigner().getAccountId().toString());
+    return AccountId.fromString(pairingData?.accountIds?.[0] || "");
   }
 
-  async createFile(
-    publicKey: Key,
-    backendKey: string,
-    fileContents: string,
-    sessionExecute: boolean = true
-  ) {
-    try {
-      const signer = this.getSigner();
-
-      // Ensure that inputPublicKey is a proper PublicKey instance.
-      // If it's a string, convert it.
-      console.log("test");
-      console.log(publicKey);
-      console.log(backendKey);
-      const backendKeyBytes = Uint8Array.from(
-        Buffer.from("04" + backendKey, "hex")
-      );
-
-      // Import as an ECDSA public key (using fromBytesECDSA)
-      const backKey = PublicKey.fromBytesECDSA(backendKeyBytes);
-      console.log("test");
-      const properPublicKey = PublicKey.fromStringECDSA((publicKey as any).key);
-      console.log("test2");
-      const publicKeyList = [sessionPublicKey, properPublicKey, backKey];
-      console.log("test3");
-      const thresholdKey = new KeyList(publicKeyList, 1); // Only 1 key (frontend OR backend) needed
-      console.log("test4");
-      console.log("afterrrrr");
-      // Create a new FileCreateTransaction and set all fields.
-      const transaction = new FileCreateTransaction()
-        .setKeys([thresholdKey])
-        .setContents(fileContents)
-        .setMaxTransactionFee(new Hbar(2));
-
-      console.log(
-        "Is transaction frozen before freezeWithSigner()? ",
-        transaction.isFrozen()
-      );
-      let txResult;
-      if (sessionExecute) {
-        console.log(sessionClient);
-        const frozenTx = await transaction.freezeWith(sessionClient);
-        txResult = await frozenTx.execute(sessionClient);
-      } else {
-        const frozenTx = await transaction.freezeWithSigner(signer);
-        txResult = await frozenTx.executeWithSigner(signer);
-      }
-
-      // Fetch the transaction receipt.
-      const receipt = await new TransactionReceiptQuery()
-        .setTransactionId(txResult.transactionId)
-        .execute(hederaClient);
-      console.log("Transaction Receipt:", receipt);
-
-      if (receipt && receipt.fileId) return { receipt, result: txResult };
-      else return "FAILED";
-    } catch (error) {
-      console.error("Transaction failed with error:", error);
-      return "FAILED";
-    }
-  }
-  async setOperator() {
-    console.log(sessionStorage.getItem("sessionPrivateKey"));
-    console.log(sessionStorage.getItem("sessionPublicKey"));
-    console.log(sessionStorage.getItem("sessionAccountId"));
-    sessionPrivateKey = PrivateKey.fromStringECDSA(
-      sessionStorage.getItem("sessionPrivateKey") || ""
-    );
-    sessionPublicKey = PublicKey.fromString(
-      sessionStorage.getItem("sessionPublicKey") || ""
-    );
+  async setOperator(sessionKey: string, sessionId: string) {
     sessionClient.setOperator(
-      AccountId.fromString(sessionStorage.getItem("sessionAccountId") || ""),
-      sessionPrivateKey
+      AccountId.fromString(sessionId),
+      PrivateKey.fromStringECDSA(sessionKey)
     );
   }
-  async updateFile(
-    fileId: string,
-    fileContents: string,
-    sessionExecute: boolean = true
+
+  public async subscribeTopic(
+    topicIdStr: string,
+    onMessage: (decoded: MessageFormat) => void,
+    lastConsensusTimestamp: string = "0",
+    privateTopic: boolean = false
   ) {
-    console.log(fileId);
-    try {
-      const signer = this.getSigner();
-      const transaction = await new FileUpdateTransaction()
-        .setFileId(FileId.fromString(fileId))
-        .setContents(fileContents)
-        .setMaxTransactionFee(new Hbar(2));
+    const mirrorUrl = "https://testnet.mirrornode.hedera.com";
+    let active = true;
+    let timeout: NodeJS.Timeout;
 
-      console.log(
-        "Is transaction frozen before freezeWithSigner()? ",
-        transaction.isFrozen()
-      );
-      let txResult;
-      if (sessionExecute) {
-        const frozenTx = await transaction.freezeWith(sessionClient);
-        txResult = await frozenTx.execute(sessionClient);
-      } else {
-        const frozenTx = await transaction.freezeWithSigner(signer);
-        txResult = await frozenTx.executeWithSigner(signer);
-      }
-      // Fetch the transaction receipt.
-      const receipt = await new TransactionReceiptQuery()
-        .setTransactionId(txResult.transactionId)
-        .execute(hederaClient);
-      console.log("Transaction Receipt:", receipt);
+    console.log(lastConsensusTimestamp);
 
-      if (receipt) return { receipt, result: txResult };
-      else return "FAILED";
-    } catch (error) {
-      console.error("Transaction failed with error:", error);
-      return "FAILED";
-    }
-  }
+    const poll = async () => {
+      if (!active) return;
 
-  async readFile(fileId: string) {
-    try {
-      console.log(
-        "Using operator:",
-        sessionClient.operatorAccountId?.toString()
-      );
-      console.log(fileId);
-      const balance = await new AccountBalanceQuery()
-        .setAccountId(sessionClient.operatorAccountId!)
-        .execute(sessionClient);
-      console.log("Session Account Balance:", balance.hbars.toString());
-
-      // Use hederaClient (standard client) for the query
-      const fileQuery = await new FileContentsQuery()
-        .setFileId(FileId.fromString(fileId))
-        .setMaxQueryPayment(new Hbar(4)); // Optional: set max query payment
-
-      const cost = await fileQuery.getCost(sessionClient);
-      console.log("Estimated query cost:", cost.toString());
-      const fileContents = await fileQuery.execute(sessionClient);
-      const contentText = Buffer.from(fileContents).toString("utf-8");
-      console.log("File Content:", contentText);
-      return contentText;
-    } catch (error) {
-      console.error("Error reading file content:", error);
-      throw error;
-    }
-  }
-
-  async createSessionAccount() {
-    try {
-      const signer = walletConnectWallet.getSigner(); // Main wallet signer
-      const transaction = new AccountCreateTransaction()
-        .setKey(sessionPublicKey)
-        .setInitialBalance(new Hbar(1));
-
-      // Freeze the transaction with the operator's signer
-      const frozenTx = await transaction.freezeWithSigner(signer);
-
-      // Sign the transaction with the session's private key (required for new account creation)
-      const signedTx = await frozenTx.sign(sessionPrivateKey);
-
-      // Execute the transaction with the operator's signer
-      const txResult = await signedTx.executeWithSigner(signer);
-
-      // Retrieve the receipt for the transaction
-      const receipt = await new TransactionReceiptQuery()
-        .setTransactionId(txResult.transactionId)
-        .execute(hederaClient);
-
-      if (receipt.accountId) {
+      try {
         console.log(
-          "New session account created:",
-          receipt.accountId.toString()
+          `${mirrorUrl}/api/v1/topics/${topicIdStr}/messages?limit=10&order=asc&timestamp=gt:${lastConsensusTimestamp}`
         );
-        sessionAccountId = AccountId.fromString(receipt.accountId.toString());
-        sessionClient.setOperator(sessionAccountId, sessionPrivateKey);
-        sessionStorage.setItem("sessionAccountId", sessionAccountId.toString());
-        return receipt.accountId;
-      } else {
-        throw new Error("Failed to create session account");
+        const res = await fetch(
+          `${mirrorUrl}/api/v1/topics/${topicIdStr}/messages?limit=10&order=asc&timestamp=gt:${lastConsensusTimestamp}`
+        );
+        const data = await res.json();
+        console.log("reaaaaad");
+        console.log(data);
+        console.log(data.messages);
+        console.log(data.messages.length);
+        if (data.messages && data.messages.length > 0) {
+          for (const message of data.messages) {
+            console.log(message.message);
+            const decoded = new TextDecoder().decode(
+              Uint8Array.from(atob(message.message), (c) => c.charCodeAt(0))
+            );
+            console.log(decoded);
+            const json = JSON.parse(decoded);
+            console.log(json.user);
+            console.log(this.getAccountId().toString());
+            if (
+              json.user === this.getAccountId().toString() ||
+              (privateTopic && json.eventType === "CHAT_RESPONSE")
+            ) {
+              const message: MessageFormat = {
+                eventType: json.eventType || "ACCOUNT_DATA",
+                accountId: json.user,
+                text: json.encryptedSessionData || json.text,
+              };
+              onMessage(message);
+
+              return "SUCCESS";
+            }
+          }
+
+          lastConsensusTimestamp =
+            data.messages[data.messages.length - 1].consensus_timestamp;
+        }
+      } catch (err) {
+        console.error(err);
+        return "FAILED";
       }
-    } catch (error) {
-      console.error("Allowance approval failed:", error);
-      return "FAILED";
-    }
+
+      timeout = setTimeout(poll, 3000); // repeat every 3 seconds
+    };
+
+    // Start polling
+    poll();
+
+    // Return an unsubscribe function
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
   }
-  async approveSessionAllowance(allowanceAmount: number) {
-    try {
-      const signer = walletConnectWallet.getSigner();
-      const ownerAccountId = walletConnectWallet.getAccountId();
 
-      const allowanceTx = new AccountAllowanceApproveTransaction()
-        .approveHbarAllowance(
-          ownerAccountId,
-          sessionAccountId,
-          new Hbar(allowanceAmount)
-        )
-        .setMaxTransactionFee(new Hbar(1));
-
-      const frozenTx = await allowanceTx.freezeWithSigner(signer);
-      const signedTx = await frozenTx.signWithSigner(signer);
-      const txResult = await signedTx.executeWithSigner(signer);
-
-      const receipt = await new TransactionReceiptQuery()
-        .setTransactionId(txResult.transactionId)
-        .execute(hederaClient);
-      console.log("Allowance przyznany:", receipt);
-      return receipt;
-    } catch (error) {
-      console.error("Przyznanie allowance nie powiodło się:", error);
-      return "FAILED";
-    }
-  }
-  async executeContractFunction(
-    contractId: ContractId,
-    functionName: string,
-    functionParameters: ContractFunctionParameterBuilder,
-    value: number,
-    gasLimit: number,
+  public async sendTopicMessage(
+    topicIdStr: string,
+    message: string,
     sessionExecute: boolean = true
   ) {
     try {
-      const tx = new ContractExecuteTransaction()
-        .setContractId(contractId)
-        .setGas(gasLimit)
-        .setFunction(functionName, functionParameters.buildHAPIParams())
-        .setPayableAmount(new Hbar(value / 100000000));
+      // 1) Prepare transaction
+      const topicId = TopicId.fromString(topicIdStr);
+      const signer = hashconnect.getSigner(this.getAccountId());
+      const tx = new TopicMessageSubmitTransaction()
+        .setTopicId(topicId)
+        .setMessage(message);
 
-      const signer = this.getSigner();
+      // 2) Execute transaction
       let txResult;
       if (sessionExecute) {
+        // Use session client
         await tx.freezeWith(sessionClient);
         txResult = await tx.execute(sessionClient);
       } else {
+        // Use signer from HashConnect
         await tx.freezeWithSigner(signer);
         txResult = await tx.executeWithSigner(signer);
       }
 
+      // 3) Get receipt (for confirmation of status)
       const receipt = await new TransactionReceiptQuery()
         .setTransactionId(txResult.transactionId)
         .execute(hederaClient);
-      console.log("Transaction Receipt:", receipt);
-      if (receipt) return { receipt: receipt, result: txResult };
-      else return "FAILED";
+
+      console.log(
+        "📨 Message submitted. Receipt status:",
+        receipt.status.toString()
+      );
+
+      // 5) Return the consensus timestamp (e.g. "1691691727.123456789")
+      return "SUCCESS";
     } catch (error) {
-      //console.error("Transaction failed with error:", error);
-      // Handle specific Hedera errors if possible
+      console.error("❌ Failed to send topic message:", error);
       return "FAILED";
     }
   }
+
+  public async generateDeterministicHederaKey(
+    accountId: string
+  ): Promise<PrivateKey> {
+    try {
+      // 1) Użyj predefiniowanego tekstu do testów (np. zależnego od accountId)
+      const message = `Generate Hedera key 222222 for ${accountId}`;
+
+      // 2) Konwertuj tekst na bajty i zakoduj base64 (opcjonalne, możesz pominąć)
+      const base64String = btoa(message);
+
+      // 3) Stwórz "entropy" poprzez keccak256
+      const entropy = keccak256(toUtf8Bytes(base64String)); // lub toUtf8Bytes(message) bez base64
+
+      // 4) Wygeneruj deterministyczny klucz prywatny
+      const privateKey = PrivateKey.fromStringECDSA(entropy);
+
+      console.log("✅ Deterministyczny klucz prywatny:", privateKey.toString());
+
+      return privateKey;
+    } catch (err) {
+      console.error("❌ Błąd przy generowaniu klucza prywatnego:", err);
+      throw err;
+    }
+  }
+
+  public async chatHistory(topicIdStr: string) {
+    const mirrorUrl = "https://testnet.mirrornode.hedera.com";
+    try {
+      console.log(
+        `${mirrorUrl}/api/v1/topics/${topicIdStr}/messages?order=asc&limit=1000`
+      );
+      const res = await fetch(
+        `${mirrorUrl}/api/v1/topics/${topicIdStr}/messages?order=asc&limit=1000`
+      );
+      console.log(
+        `${mirrorUrl}/api/v1/topics/${topicIdStr}/messages?order=asc&limit=1000`
+      );
+      if (!res.ok) throw new Error(`Mirror node error: ${res.status}`);
+
+      const data = await res.json();
+
+      const messages = data.messages.map((msg) =>
+        new TextDecoder().decode(
+          Uint8Array.from(atob(msg.message), (c) => c.charCodeAt(0))
+        )
+      );
+
+      return messages;
+    } catch (err) {
+      console.error("❌ Failed to fetch messages from mirror node:", err);
+      return [];
+    }
+  }
+
   disconnect() {
-    dappConnector.disconnectAll().then(() => {
-      sessionStorage.setItem("sessionAccountId", "");
-      sessionStorage.setItem("sessionPublicKey", "");
-      sessionStorage.setItem("sessionPrivateKey", "");
-      refreshEvent.emit("sync");
-    });
+    hashconnect.disconnect().then((x) => {});
   }
 }
 
-export const walletConnectWallet = new WalletConnectWallet();
+export const hashConnectWallet = new HashConnectWallet();
 
-const dappConnector = new DAppConnector(
-  metadata,
-  LedgerId.fromString(hederaNetwork),
-  walletConnectProjectId,
-  Object.values(HederaJsonRpcMethod),
-  [HederaSessionEvent.ChainChanged, HederaSessionEvent.AccountsChanged],
-  [HederaChainId.Testnet]
-);
-
-// ensure walletconnect is initialized only once
-let walletConnectInitPromise: Promise<void> | undefined = undefined;
-const initializeWalletConnect = async () => {
-  if (walletConnectInitPromise === undefined) {
-    walletConnectInitPromise = dappConnector.init();
-  }
-  await walletConnectInitPromise;
+const appMetadata = {
+  name: "Medical assistant",
+  description: "Medical assistant",
+  icons: [window.location.origin + "/logo192.png"],
+  url: window.location.origin,
 };
 
-export const openWalletConnectModal = async () => {
-  await initializeWalletConnect();
-  await dappConnector.openModal().then((x) => {
+const walletConnectProjectId = "0a284adf3b261085a406950d03c4ef31";
+
+let state: HashConnectConnectionState = HashConnectConnectionState.Disconnected;
+let pairingData: SessionData | null;
+let hashconnect: HashConnect;
+
+export const initHashConnect = async () => {
+  console.log("open modal");
+  await hashconnect.openPairingModal();
+  console.log("after modal");
+};
+
+/**
+ * Register basic event handlers — no React context access here.
+ */
+function setUpHashConnectEvents() {
+  hashconnect.pairingEvent.on((newPairing) => {
+    pairingData = newPairing;
+    console.log("📡 New pairing:", pairingData);
     refreshEvent.emit("sync");
   });
-};
 
-export const WalletConnectClient = () => {
+  hashconnect.disconnectionEvent.on((data) => {
+    console.log("🛑 Disconnected:", data);
+    pairingData = null;
+
+    refreshEvent.emit("sync");
+  });
+
+  hashconnect.connectionStatusChangeEvent.on((connectionStatus) => {
+    state = connectionStatus;
+    console.log("🔁 Status:", connectionStatus);
+  });
+}
+
+/**
+ * React component that syncs context with HashConnect state
+ */
+export const HashConnectClient = () => {
   const { setAccountId, setIsConnected } = useContext(WalletConnectContext);
 
-  // Function to sync accountId and connection state.
-  const syncWithWalletConnectContext = useCallback(() => {
-    const accountId = dappConnector.signers[0]?.getAccountId()?.toString();
-    if (accountId) {
-      setAccountId(accountId);
+  const syncWithContext = useCallback(() => {
+    console.log("wallet refresh: " + pairingData);
+    const id = pairingData?.accountIds?.[0];
+    if (id) {
+      setAccountId(id);
       setIsConnected(true);
     } else {
+      saveSession({
+        accountId: "",
+        privateKey: "",
+        topicId: "",
+      });
       setAccountId("");
       setIsConnected(false);
     }
   }, [setAccountId, setIsConnected]);
 
   useEffect(() => {
-    // Listen for refresh events.
-    refreshEvent.addListener("sync", syncWithWalletConnectContext);
-
-    // Handler for disconnect events.
-    const handleDisconnect = (error: any, payload: any) => {
-      console.log("WalletConnect disconnected:", error, payload);
-      setAccountId("");
-      setIsConnected(false);
-    };
-
-    // Initialize wallet connect and sync state.
-    initializeWalletConnect().then(() => {
-      syncWithWalletConnectContext();
-    });
-
-    // Also poll for connection changes (optional, every 3 seconds).
-    const interval = setInterval(() => {
-      syncWithWalletConnectContext();
-    }, 3000);
-
-    // Cast walletConnectClient to any to bypass type restrictions for additional events.
-    const wcClient = dappConnector.walletConnectClient as any;
-    if (dappConnector.walletConnectClient !== undefined) {
-      // Add event listeners for disconnect events.
-      wcClient.on("disconnect", handleDisconnect);
-      wcClient.on("session_delete", handleDisconnect);
-    }
-
+    // Attach sync on event
+    refreshEvent.addListener("sync", syncWithContext);
     return () => {
-      refreshEvent.removeListener("sync", syncWithWalletConnectContext);
-      console.log("return part fired:  " + wcClient);
-      if (wcClient !== undefined) {
-        wcClient.off("disconnect", handleDisconnect);
-        wcClient.off("session_delete", handleDisconnect);
-      }
-
-      clearInterval(interval);
+      refreshEvent.removeListener("sync", syncWithContext);
     };
-  }, [syncWithWalletConnectContext, setAccountId, setIsConnected]);
+  }, [syncWithContext]);
+  useEffect(() => {
+    const init = async () => {
+      console.log("start hashhhhhhh");
+      if (hashconnect) return;
+
+      hashconnect = new HashConnect(
+        LedgerId.TESTNET,
+        walletConnectProjectId,
+        appMetadata,
+        true
+      );
+      await setUpHashConnectEvents();
+      console.log("hash init start " + typeof window);
+      if (typeof window === "undefined") return;
+      console.log("non");
+      await hashconnect.init();
+
+      console.log("hash init end");
+    };
+
+    init();
+  }, []);
 
   return null;
 };
