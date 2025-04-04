@@ -121,12 +121,19 @@ const ContractUi: React.FC = () => {
   }, [accountId]);
 
   return (
+    <>
     <div
       style={{
         width: "100vw",
         height: "100vh",
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        position: "relative",
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -304,9 +311,9 @@ const ContractUi: React.FC = () => {
           >
             Send
           </Button>
+          </Box>
         </Box>
-      </Box>
-    </div>
+      </div></>
   );
 };
 
