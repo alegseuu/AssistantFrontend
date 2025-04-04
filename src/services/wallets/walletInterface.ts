@@ -1,12 +1,7 @@
 import {
-  AccountId,
   ContractId,
-  TokenId,
-  TransactionId,
-  ContractFunctionResult,
   TransactionReceipt,
   TransactionResponse,
-  PublicKey,
   Key,
 } from "@hashgraph/sdk";
 import { ContractFunctionParameterBuilder } from "./contractFunctionParameterBuilder";
