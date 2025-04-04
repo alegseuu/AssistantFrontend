@@ -11,7 +11,7 @@ export const networkConfig: NetworkConfigs = {
     backendKey:
       "3ca7db3cba1471d261b6a6b51c94a33cb70b8acc15aed6724104acf9624dda3f",
     requestTopic: "0.0.5798663",
-    backendTopic: "0.0.5799005",
+    backendTopic: "0.0.5820003",
     resumeTopic: "0.0.5806833",
   },
 };
