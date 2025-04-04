@@ -1,20 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Container,
-  Typography,
-  TextField,
-  Button,
-  List,
-  ListItem,
-  ListItemAvatar,
-  Avatar,
-  Box,
-  Paper,
+  Typography, TextField, Button, List,
+  ListItem, ListItemAvatar, Avatar, Box, Paper, Toolbar, AppBar
 } from "@mui/material";
-import { HederaContractClient } from "../services/contract/HederaContractClient";
 import { AssistantService } from "../services/assistantService";
-import { networkConfig } from "../config/networks";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
+import backgroundImage from "../assets/background.jpg";
+import { initHashConnect } from "../services/wallets/walletconnect/walletConnectClient";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: number;
@@ -27,7 +20,9 @@ const ContractUi: React.FC = () => {
   const [input, setInput] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { accountId, walletInterface } = useWalletInterface();
+  const {accountId, walletInterface } = useWalletInterface();
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const [assistantService, setAssistantService] = useState<AssistantService>(
     new AssistantService(walletInterface)
@@ -52,11 +47,17 @@ const ContractUi: React.FC = () => {
   useEffect(() => {
     const service = new AssistantService(walletInterface);
     setAssistantService(service);
-
     if (!accountId) {
       setMessages([]);
     }
   }, [accountId]);
+
+  useEffect(() => {
+    if (accountId) {
+      loadHistory();
+    }
+  }, [accountId]);
+
   const handleSendMessage = async () => {
     if (input.trim() === "") return;
 
@@ -93,31 +94,95 @@ const ContractUi: React.FC = () => {
     }
     setIsExpanded(false);
   };
-  const handleLogin = async () => {
-    if (accountId) {
-      loadHistory();
-    }
-  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (accountId===null) {
+      setOpen(false);
+      navigate("/");
+    }
+  }, [accountId]);
+  const handleConnect = async () => {
+    if (accountId) {
+      walletInterface.disconnect();
+    } else {
+      initHashConnect();
+      setOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    if (accountId) {
+      setOpen(false);
+    }
+  }, [accountId]);
+
   return (
     <div
       style={{
+        width: "100vw",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        height: "calc(100vh - 65px)",
-        width: "100vw",
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        position: "relative",
         justifyContent: "center",
         padding: 36,
       }}
     >
+            <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100vh",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          zIndex: 1,
+        }}
+      />
+      <header>
+        <AppBar
+        position="absolute"
+        sx={{ backgroundColor: "rgba(0, 0, 0, 0.5)"}}
+      >
+          <Toolbar
+          color="default">
+            <Typography variant="h6" color="white" pl={1} noWrap>
+              Medical Assistant
+            </Typography>
+
+            <Button
+              variant="outlined"
+              sx={{
+                ml: "auto",
+                fontSize: "1rem", // Increase font size
+                minWidth: "100px", // Set a minimum width
+                color: "rgb(255, 255, 255)",
+                borderColor: "rgb(255, 255, 255)",
+                "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.2)",
+                color: "rgba(134, 249, 254, 0.6)",
+                borderColor: "rgb(134, 249, 254, 0.6)",
+                },
+              }}
+              onClick={handleConnect}
+            >
+              {accountId ? `Connected: ${accountId}` : "Connect Wallet"}
+          </Button>
+        </Toolbar>
+      </AppBar>
+      </header>
       <Box
         display="flex"
         flexDirection="column"
         sx={{
-          maxHeight: "calc(100vh - 85px)",
+          maxHeight: "calc(100vh)",
           height: "fit-content",
           boxSizing: "border-box",
         }}
@@ -131,7 +196,8 @@ const ContractUi: React.FC = () => {
             height: "fit-content",
             padding: "16px",
             overflowY: "auto",
-            justifyContent: "center",
+            justifyContent: "center", zIndex: 2,
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
           }}
         >
           <List>
@@ -155,7 +221,7 @@ const ContractUi: React.FC = () => {
                   style={{
                     padding: "8px",
                     backgroundColor:
-                      message.sender === "user" ? "#1976d2" : "#e0e0e0",
+                      message.sender === "user" ? "rgba(0, 242, 255, 0.6)" : "#e0e0e0",
                     color: message.sender === "user" ? "#fff" : "#000",
                     borderRadius: "8px",
                     maxWidth: "70%",
@@ -202,7 +268,7 @@ const ContractUi: React.FC = () => {
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="Wpisz wiadomość..."
+            placeholder="Enter your message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             multiline
@@ -213,30 +279,30 @@ const ContractUi: React.FC = () => {
             }}
             sx={{
               transition: "all 0.3s ease",
+              zIndex: 1,  
             }}
           />
           <Button
-            variant="contained"
-            color="primary"
             onClick={handleSendMessage}
+            variant="outlined"
             style={{
               marginLeft: "8px",
               maxHeight: "40px",
               display: "flex",
               alignSelf: "center",
             }}
-          >
-            Wyślij
-          </Button>
-          <Button
-            variant="contained"
             sx={{
-              ml: "auto",
+              zIndex: 1,
+              color: "rgb(255, 255, 255)",
+              borderColor: "rgb(255, 255, 255)",
+              "&:hover": {
+                backgroundColor: "rgba(33, 53, 71, 0.4)",
+                color: "rgba(134, 249, 254, 0.6)",
+                borderColor: "rgb(134, 249, 254, 0.6)",
+            },
             }}
-            onClick={handleLogin}
-            disabled={!accountId}
           >
-            {"Login/Register"}
+            Send
           </Button>
         </Box>
       </Box>

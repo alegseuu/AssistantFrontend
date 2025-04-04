@@ -1,44 +1,17 @@
 import { WalletConnectContext } from "../../../contexts/WalletConnectContext";
 import { useCallback, useContext, useEffect } from "react";
 import { WalletInterface } from "../walletInterface";
-import { MirrorNodeClient } from "../mirrorNodeClient";
 import { saveSession } from "./../../sessionStorage";
-import { ethers, ContractInterface } from "ethers";
 import { keccak256, toUtf8Bytes } from "ethers";
 import {
   AccountId,
-  ContractExecuteTransaction,
-  ContractId,
   LedgerId,
-  TokenAssociateTransaction,
-  TokenId,
-  Transaction,
-  TransactionId,
-  TransferTransaction,
   TransactionReceiptQuery,
   TopicMessageSubmitTransaction,
   TopicId,
   Client,
-  TopicMessageQuery,
-  Hbar,
-  FileId,
-  ContractCallQuery,
-  TransactionRecordQuery,
-  FileCreateTransaction,
-  AccountAllowanceApproveTransaction,
-  AccountInfoQuery,
-  FileUpdateTransaction,
-  PublicKey,
-  SignatureMap,
-  Key,
   PrivateKey,
-  AccountCreateTransaction,
-  KeyList,
-  FileContentsQuery,
-  AccountBalanceQuery,
 } from "@hashgraph/sdk";
-import { ContractFunctionParameterBuilder } from "../contractFunctionParameterBuilder";
-import { appConfig } from "../../../config";
 /*import { SignClientTypes } from "@walletconnect/types";
 import {
   DAppConnector,
@@ -54,7 +27,6 @@ import {
   SessionData,
 } from "hashconnect";
 import EventEmitter from "events";
-import { networkConfig } from "../../../config/networks";
 
 // Created refreshEvent because `dappConnector.walletConnectClient.on(eventName, syncWithWalletConnectContext)` would not call syncWithWalletConnectContext
 interface MessageFormat {
@@ -68,8 +40,6 @@ const refreshEvent = new EventEmitter();
 
 // Create a new project in walletconnect cloud to generate a project id
 
-const currentNetworkConfig = appConfig.networks.testnet;
-const hederaNetwork = currentNetworkConfig.network;
 const hederaClient = Client.forTestnet();
 
 // https://github.com/hashgraph/hedera-wallet-connect/blob/main/src/examples/typescript/dapp/main.ts#L87C1-L101C4
@@ -245,7 +215,7 @@ class HashConnectWallet implements WalletInterface {
 
       const data = await res.json();
 
-      const messages = data.messages.map((msg) =>
+      const messages = data.messages.map((msg: { message: string; }) =>
         new TextDecoder().decode(
           Uint8Array.from(atob(msg.message), (c) => c.charCodeAt(0))
         )
@@ -259,7 +229,7 @@ class HashConnectWallet implements WalletInterface {
   }
 
   disconnect() {
-    hashconnect.disconnect().then((x) => {});
+    hashconnect.disconnect().then(() => {});
   }
 }
 

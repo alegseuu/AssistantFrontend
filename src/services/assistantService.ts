@@ -92,7 +92,7 @@ export class AssistantService {
         console.log(loginPrivateKeyObj);
         const sessionData = await this.decryptSessionData(
           lastMessage.encryptedSessionData || "",
-          loginPrivateKeyObj.toStringRaw()
+          loginPrivateKeyObj?.toStringRaw() ?? ""
         );
         this.sessionData = sessionData;
         console.log("🔑 Decrypted session data:", sessionData);

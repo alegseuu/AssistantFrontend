@@ -1,9 +1,9 @@
-import { AppBar, Button, Typography, Box } from "@mui/material";
+import { Button, Typography, Box } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/background.jpg";
-import { openWalletConnectModal } from "../services/wallets/walletconnect/walletConnectClient";
+import { initHashConnect } from "../services/wallets/walletconnect/walletConnectClient";
 
 export default function Login() {
   const [open, setOpen] = useState(false);
@@ -13,33 +13,33 @@ export default function Login() {
   useEffect(() => {
     if (accountId) {
       setOpen(false);
-      navigate("/home");
+      navigate("/interview");
     }
   }, [accountId]);
 
   return (
     <Box
+    sx={{
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      backgroundImage: `url(${backgroundImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      position: "relative",
+    }}
+  >
+    <Box
       sx={{
-        width: "100vw",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
         height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        position: "relative",
+        backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust transparency here
+        zIndex: 1,
       }}
-    >
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(33, 53, 71, 0.8)", // Adjust transparency here
-          zIndex: 1,
-        }}
       />
       <Box
         sx={{
@@ -64,15 +64,15 @@ export default function Login() {
             color: "rgb(255, 255, 255)",
             borderColor: "rgb(255, 255, 255)",
             "&:hover": {
-            backgroundColor: "rgba(33, 53, 71, 0.4)",
-            color: "rgb(255, 255, 255)",
-            borderColor: "rgba(33, 53, 71, 1)",
+              backgroundColor: "rgba(0, 0, 0, 0.2)",
+              color: "rgba(134, 249, 254, 0.6)",
+              borderColor: "rgb(134, 249, 254, 0.6)",
             },
 
           }}
           onClick={() => {
-                      openWalletConnectModal();
-                      setOpen(false);
+            initHashConnect();
+            setOpen(false);
                     }}
         >
           {accountId ? `Connected: ${accountId}` : "Login using wallet"}
