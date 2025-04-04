@@ -105,6 +105,20 @@ class MetaMaskWallet implements WalletInterface {
       return "FAILED";
     }
   }
+  async subscribeTopic() {
+    try {
+      return "FAILED";
+    } catch (error) {
+      return "FAILED";
+    }
+  }
+  async sendTopicMessage() {
+    try {
+      return "FAILED";
+    } catch (error) {
+      return "FAILED";
+    }
+  }
   async updateFile(fileId: string, fileContents: string) {
     try {
       return "FAILED";
