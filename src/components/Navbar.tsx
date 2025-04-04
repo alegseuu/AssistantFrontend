@@ -23,16 +23,30 @@ export default function NavBar() {
   }, [accountId]);
 
   return (
-    <AppBar position="relative">
-      <Toolbar>
+    <AppBar
+      position="absolute"
+      sx={{ backgroundColor: "rgba(0, 0, 0, 0.5)"}}
+    >
+      <Toolbar
+      color="default">
         <Typography variant="h6" color="white" pl={1} noWrap>
           Medical Assistant
         </Typography>
 
         <Button
-          variant="contained"
+          variant="outlined"
           sx={{
             ml: "auto",
+            fontSize: "1rem", // Increase font size
+            minWidth: "100px", // Set a minimum width
+            color: "rgb(255, 255, 255)",
+            borderColor: "rgb(255, 255, 255)",
+            "&:hover": {
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            color: "rgba(134, 249, 254, 0.6)",
+            borderColor: "rgb(134, 249, 254, 0.6)",
+            },
+
           }}
           onClick={handleConnect}
         >

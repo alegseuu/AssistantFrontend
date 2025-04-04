@@ -13,7 +13,7 @@ export default function Login() {
   useEffect(() => {
     if (accountId) {
       setOpen(false);
-      navigate("/home");
+      navigate("/interview"); // Redirect to the interview page after login
     }
   }, [accountId]);
 
@@ -36,8 +36,8 @@ export default function Login() {
           top: 0,
           left: 0,
           width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(33, 53, 71, 0.8)", // Adjust transparency here
+          height: "100vh",
+          backgroundColor: "rgba(0, 0, 0, 0.5)", // Adjust transparency here
           zIndex: 1,
         }}
       />
@@ -64,9 +64,9 @@ export default function Login() {
             color: "rgb(255, 255, 255)",
             borderColor: "rgb(255, 255, 255)",
             "&:hover": {
-            backgroundColor: "rgba(33, 53, 71, 0.4)",
-            color: "rgb(255, 255, 255)",
-            borderColor: "rgba(33, 53, 71, 1)",
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            color: "rgba(134, 249, 254, 0.6)",
+            borderColor: "rgb(134, 249, 254, 0.6)",
             },
 
           }}
