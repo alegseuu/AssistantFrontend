@@ -36,18 +36,144 @@ const questions: Record<string, Question> = {
   pain_injury: {
     id: "Pain_injury",
     text: "Where do you have pain/injury?",
-    options: ["Headache","Chest pain", "Stomachache", "Back pain", "Eye pain", "Ear pain", "Leg pain", "Arm pain", "Animal bite"],
+    options: ["Headache", "Chest pain", "Stomachache", "Back pain", "Eye pain", "Ear pain", "Leg pain", "Arm pain", "Animal bite"],
     next: {
-      "Headache": "general_questions",
-      "Chest pain": "general_questions",
-      "Stomachache": "general_questions",
-      "Back pain": "general_questions",
-      "Eye pain": "general_questions",
-      "Ear pain": "general_questions",
-      "Leg pain": "general_questions",
-      "Arm pain": "general_questions",
-      "Animal bite": "general_questions",
+      "Headache": "headache_question1",
+      "Chest pain": "chest_pain_questions",
+      "Stomachache": "stomachache_questions",
+      "Back pain": "back_pain_questions",
+      "Eye pain": "eye_pain_questions",
+      "Ear pain": "ear_pain_questions",
+      "Leg pain": "leg_pain_questions",
+      "Arm pain": "arm_pain_questions",
+      "Animal bite": "animal_bite_questions",
     },
+    prompt: {
+      "Headache": "I have a headache. ",
+      "Chest pain": "I have chest pain. ",
+      "Stomachache": "I have stomachache. ",
+      "Back pain": "I have back pain. ",
+      "Eye pain": "I have eye pain. ",
+      "Ear pain": "I have ear pain. ",
+      "Leg pain": "I have leg pain. ",
+      "Arm pain": "I have arm pain. ",
+      "Animal bite": "I have an animal bite. ",
+    },
+  },
+  headache_question1: {
+    id: "headache_question1",
+    text: "What type of pain is it?",
+    options: [
+      "pulsating", "squeezing","dull","sharp","throbbing"
+    ],
+    next: { "everything": "headache_question2" },
+  },
+    headache_question2: {
+      id: "headache_questions",
+      text: "What type of pain is it?",
+      options: [
+        "Does the pain start at the back, front, or one side of the head?",
+        "Does it worsen with effort, light, or sounds?",
+        "Do you have vision disturbances, nausea, or neck stiffness?",
+        "Do you experience aura (flashing lights, tingling)?",
+      ],
+      next: { "everything": "general_questions" },
+  },
+  chest_pain_questions: {
+    id: "chest_pain_questions",
+    text: "Please answer the following about your chest pain:",
+    options: [
+      "Does the pain occur during effort or rest?",
+      "Does it radiate to the arm, neck, or jaw?",
+      "Is the pain stabbing, crushing, or burning?",
+      "Do you experience shortness of breath, cold sweats, or dizziness?",
+      "Does it worsen with breathing or position changes?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  stomachache_questions: {
+    id: "stomachache_questions",
+    text: "Please answer the following about your stomachache:",
+    options: [
+      "Where exactly does it hurt (upper, lower, right side, etc.)?",
+      "Is the pain related to eating?",
+      "Do you experience nausea, vomiting, diarrhea, or constipation?",
+      "Have you noticed blood in stool or dark stool?",
+      "Is your abdomen bloated or tender to touch?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  back_pain_questions: {
+    id: "back_pain_questions",
+    text: "Please answer the following about your back pain:",
+    options: [
+      "Does the pain radiate to your legs or buttocks?",
+      "Do you experience numbness, tingling, or muscle weakness?",
+      "Does it worsen with movement, sitting, or at night?",
+      "Do you have trouble urinating or with bowel movements?",
+      "Have you had an injury or overexertion?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  eye_pain_questions: {
+    id: "eye_pain_questions",
+    text: "Please answer the following about your eye pain:",
+    options: [
+      "Do you see blurry images, spots, or flashes?",
+      "Is your eye red or watery?",
+      "Do you experience light sensitivity?",
+      "Have you had an eye injury or foreign object in the eye?",
+      "Do you wear contact lenses?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  ear_pain_questions: {
+    id: "ear_pain_questions",
+    text: "Please answer the following about your ear pain:",
+    options: [
+      "Is the pain in one ear or both?",
+      "Do you have fever or ear discharge?",
+      "Do you hear worse than usual?",
+      "Have you recently had an upper respiratory infection?",
+      "Does it hurt when chewing or swallowing?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  leg_pain_questions: {
+    id: "leg_pain_questions",
+    text: "Please answer the following about your leg pain:",
+    options: [
+      "Does the pain occur when walking and stop at rest?",
+      "Do you have swelling, redness, or warmth?",
+      "Do you feel numbness or tingling?",
+      "Have you had an injury or prolonged immobility?",
+      "Is the leg colder or paler than the other?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  arm_pain_questions: {
+    id: "arm_pain_questions",
+    text: "Please answer the following about your arm pain:",
+    options: [
+      "Does the pain radiate from the neck or chest?",
+      "Do you have limited range of motion?",
+      "Do you feel numbness in your fingers?",
+      "Have you had an injury?",
+      "Does your arm swell or turn blue?",
+    ],
+    next: { "everything": "general_questions" },
+  },
+  animal_bite_questions: {
+    id: "animal_bite_questions",
+    text: "Please answer the following about the animal bite:",
+    options: [
+      "Was the animal known/unknown and vaccinated?",
+      "Did the wound bleed? How deep is it?",
+      "Is there redness, swelling, or pus?",
+      "Do you have fever or chills?",
+      "Have you been vaccinated for tetanus or rabies?",
+    ],
+    next: { "everything": "general_questions" },
   },
   alergy_skin: {
     id: "Alergy/skin problems",
@@ -171,10 +297,11 @@ export default function MedicalInterview() {
     if (currentQuestion.prompt) {
       setOutput((prev) => prev + (currentQuestion.prompt?.[option] || "")); // Dodaj tekst do outputu
     }
-    const nextId = currentQuestion.next?.[option] || "end";
+    const nextId = currentQuestion.next?.[option] ||currentQuestion.next?.["everything"]|| "end";
     setCurrentQuestion(questions[nextId]);
     console.log("Selected option:", output);
-    if (currentQuestion.id === "end") {
+
+    if (nextId === "end") {
       navigate("/home");
     }
   };

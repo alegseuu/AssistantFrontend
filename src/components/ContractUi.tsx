@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Typography, TextField, Button, List,
-  ListItem, ListItemAvatar, Avatar, Box, Paper, Toolbar, AppBar
+  ListItem, ListItemAvatar, Avatar, Box, Paper, Toolbar, AppBar, CircularProgress
 } from "@mui/material";
 import { AssistantService } from "../services/assistantService";
 import { useWalletInterface } from "../services/wallets/useWalletInterface";
 import backgroundImage from "../assets/background.jpg";
 import { initHashConnect } from "../services/wallets/walletconnect/walletConnectClient";
 import { useNavigate } from "react-router-dom";
+import assistantImage from "../assets/assistant.png";
 
 interface Message {
   id: number;
@@ -23,6 +24,8 @@ const ContractUi: React.FC = () => {
   const {accountId, walletInterface } = useWalletInterface();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [typingDots, setTypingDots] = useState(""); // State for dynamic dots
 
   const [assistantService, setAssistantService] = useState<AssistantService>(
     new AssistantService(walletInterface)
@@ -58,6 +61,18 @@ const ContractUi: React.FC = () => {
     }
   }, [accountId]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      interval = setInterval(() => {
+        setTypingDots((prev) => (prev.length < 3 ? prev + "." : ""));
+      }, 500); // Update dots every 500ms
+    } else {
+      setTypingDots(""); // Reset dots when not loading
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
   const handleSendMessage = async () => {
     if (input.trim() === "") return;
 
@@ -70,6 +85,17 @@ const ContractUi: React.FC = () => {
     let updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     setInput("");
+    setLoading(true); // Start loading state
+
+    // Add a temporary "typing" message for the assistant
+    const typingMessage: Message = {
+      id: updatedMessages.length + 1,
+      sender: "assistant",
+      text: "Assistant is typing", // Placeholder text
+    };
+    updatedMessages = [...updatedMessages, typingMessage];
+    setMessages(updatedMessages);
+
     let assistantResponse;
     if (typeof accountId === "string") {
       console.log("after account");
@@ -82,16 +108,17 @@ const ContractUi: React.FC = () => {
 
     if (typeof assistantResponse === "string") {
       const assistantMessage: Message = {
-        id: updatedMessages.length + 1,
+        id: updatedMessages.length,
         sender: "assistant",
         text: assistantResponse,
       };
 
-      updatedMessages = [...updatedMessages, assistantMessage];
+      updatedMessages[updatedMessages.length - 1] = assistantMessage; // Replace "typing" message
       setMessages(updatedMessages);
     } else {
       console.warn("Assistant response was not a string:", assistantResponse);
     }
+    setLoading(false); // Stop loading state
     setIsExpanded(false);
   };
 
@@ -126,14 +153,8 @@ const ContractUi: React.FC = () => {
       style={{
         width: "100vw",
         height: "100vh",
-        width: "100vw",
-        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        position: "relative",
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -221,7 +242,7 @@ const ContractUi: React.FC = () => {
                   <ListItemAvatar
                     style={{ display: "flex", alignSelf: "start" }}
                   >
-                    <Avatar alt="Asystent" src="/assistant-avatar.png" />
+                    <Avatar src={assistantImage} />
                   </ListItemAvatar>
                 )}
                 <Paper
@@ -241,7 +262,9 @@ const ContractUi: React.FC = () => {
                       wordBreak: "break-word",
                     }}
                   >
-                    {message.text}
+                    {message.text === "Assistant is typing" && loading
+                      ? `Assistant is typing${typingDots}`
+                      : message.text}
                   </Typography>
                 </Paper>
 
